@@ -382,7 +382,15 @@ async function generatePDF() {
             doc.addImage(remarkImg, 'JPEG', x, y + BOX_H + PHOTO_H + BOX_H, PHOTO_W, BOX_H);
         }
 
-        doc.save(`PhotoBook_${new Date().toISOString().split('T')[0]}.pdf`);
+        const now = new Date();
+        const yyyy = now.getFullYear();
+        const mm = String(now.getMonth() + 1).padStart(2, '0');
+        const dd = String(now.getDate()).padStart(2, '0');
+        const hh = String(now.getHours()).padStart(2, '0');
+        const min = String(now.getMinutes()).padStart(2, '0');
+        const ss = String(now.getSeconds()).padStart(2, '0');
+        
+        doc.save(`PhotoBook_${yyyy}${mm}${dd}_${hh}${min}${ss}.pdf`);
     } catch (err) {
         console.error('PDF Generation failed:', err);
         alert('PDF生成中にエラーが発生しました。詳細はコンソールを確認してください。');
