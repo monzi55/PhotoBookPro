@@ -1,0 +1,16 @@
+{
+  "name": "PhotoBook Pro",
+  "short_name": "PhotoBook",
+  "description": "A4サイズの写真帳PDF作成アプリ",
+  "start_url": "./index.html",
+  "display": "standalone",
+  "background_color": "#f8fafc",
+  "theme_color": "#2563eb",
+  "icons": [
+    {
+      "src": "https://cdn-icons-png.flaticon.com/512/3342/3342137.png",
+      "sizes": "512x512",
+      "type": "image/png"
+    }
+  ]
+}

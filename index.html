@@ -1,0 +1,123 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>フォトアルバムPDF作成</title>
+    <link rel="stylesheet" href="style.css">
+    <!-- Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Noto+Sans+JP:wght@400;500;700&display=swap" rel="stylesheet">
+    <!-- Libraries -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/exif-js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.0/Sortable.min.js"></script>
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <link rel="manifest" href="manifest.json">
+    <script>
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', () => {
+                navigator.serviceWorker.register('sw.js').catch(err => console.log('SW registration failed', err));
+            });
+        }
+    </script>
+</head>
+<body>
+    <div id="app">
+        <header>
+            <div class="header-content">
+                <h1><i data-lucide="camera"></i> PhotoBook Pro</h1>
+                <div class="header-actions">
+                    <button id="master-btn" class="icon-btn" title="定型文編集">
+                        <i data-lucide="settings"></i>
+                    </button>
+                </div>
+            </div>
+        </header>
+
+        <main>
+            <div id="empty-state" class="empty-state">
+                <div class="empty-icon">
+                    <i data-lucide="image-plus"></i>
+                </div>
+                <h2>写真を読み込んでください</h2>
+                <p>デバイスから複数の写真を選択して、PDF写真帳を簡単に作成できます。</p>
+                <label for="image-input" class="btn primary-btn">
+                    <i data-lucide="plus"></i> 写真を選択
+                </label>
+                <input type="file" id="image-input" accept="image/*" multiple hidden>
+            </div>
+
+            <div id="photo-list-container" class="hidden">
+                <div class="list-header">
+                    <span id="photo-count">0枚の写真</span>
+                    <div class="list-actions">
+                        <label for="image-input-append" class="btn secondary-btn small">
+                            <i data-lucide="plus"></i> 追加
+                        </label>
+                        <input type="file" id="image-input-append" accept="image/*" multiple hidden>
+                        <button id="generate-pdf-btn" class="btn accent-btn">
+                            <i data-lucide="file-text"></i> PDF出力
+                        </button>
+                    </div>
+                </div>
+                <div id="photo-list" class="photo-grid">
+                    <!-- Photos will be injected here -->
+                </div>
+            </div>
+        </main>
+
+        <!-- Master Data Modal -->
+        <div id="master-modal" class="modal hidden">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h2>定型文の編集</h2>
+                    <button class="close-modal"><i data-lucide="x"></i></button>
+                </div>
+                <div class="modal-body">
+                    <div class="tabs">
+                        <button class="tab-btn active" data-tab="titles">タイトル</button>
+                        <button class="tab-btn" data-tab="remarks">備考</button>
+                    </div>
+                    <div class="tab-content" id="titles-tab">
+                        <div class="master-input-group">
+                            <input type="text" id="new-title" placeholder="新しいタイトルを追加...">
+                            <button id="add-title-btn" class="btn primary-btn small">追加</button>
+                        </div>
+                        <ul id="title-list" class="master-list"></ul>
+                    </div>
+                    <div class="tab-content hidden" id="remarks-tab">
+                        <div class="master-input-group">
+                            <input type="text" id="new-remark" placeholder="新しい備考を追加...">
+                            <button id="add-remark-btn" class="btn primary-btn small">追加</button>
+                        </div>
+                        <ul id="remark-list" class="master-list"></ul>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Selection Modal for Title/Remarks -->
+        <div id="selection-modal" class="modal hidden">
+            <div class="modal-content selection-content">
+                <div class="modal-header">
+                    <h2 id="selection-title">選択してください</h2>
+                    <button class="close-modal"><i data-lucide="x"></i></button>
+                </div>
+                <div id="selection-options" class="selection-grid">
+                    <!-- Options injected here -->
+                </div>
+            </div>
+        </div>
+
+        <!-- Loading Overlay -->
+        <div id="loading-overlay" class="overlay hidden">
+            <div class="spinner"></div>
+            <p id="loading-text">処理中...</p>
+        </div>
+    </div>
+
+    <script src="main.js" type="module"></script>
+</body>
+</html>
