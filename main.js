@@ -319,7 +319,7 @@ async function generatePDF() {
         const MARGIN_Y = 20;
 
         // Helper: Render text to canvas and get data URL
-        const textToImage = (text, width, height, fontSize = 12) => {
+        const textToImage = (text, width, height, fontSizePt = 10) => {
             const canvas = document.createElement('canvas');
             const scale = 4; // Higher resolution
             canvas.width = width * scale;
@@ -336,11 +336,14 @@ async function generatePDF() {
             ctx.lineWidth = 0.5;
             ctx.strokeRect(0, 0, width, height);
             
+            // Convert pt to mm for logical sizing (1 pt = 25.4 / 72 mm)
+            const fontSizeMm = fontSizePt * 25.4 / 72;
+            
             // Draw text
             ctx.fillStyle = '#333333';
-            ctx.font = `${fontSize}px "Noto Sans JP", sans-serif`;
+            ctx.font = `${fontSizeMm}px "Noto Sans JP", sans-serif`;
             ctx.textBaseline = 'middle';
-            ctx.fillText(text, 4, height / 2);
+            ctx.fillText(text, 2, height / 2); // 2mm padding from left
             
             return canvas.toDataURL('image/jpeg', 0.9);
         };
@@ -371,11 +374,11 @@ async function generatePDF() {
             doc.rect(x, y + BOX_H, PHOTO_W, PHOTO_H);
 
             // 3. Date Area
-            const dateImg = textToImage(`撮影日: ${photo.date}`, PHOTO_W, BOX_H, 9);
+            const dateImg = textToImage(`撮影日: ${photo.date}`, PHOTO_W, BOX_H, 10);
             doc.addImage(dateImg, 'JPEG', x, y + BOX_H + PHOTO_H, PHOTO_W, BOX_H);
 
             // 4. Remarks Area
-            const remarkImg = textToImage(photo.remarks, PHOTO_W, BOX_H, 9);
+            const remarkImg = textToImage(photo.remarks, PHOTO_W, BOX_H, 10);
             doc.addImage(remarkImg, 'JPEG', x, y + BOX_H + PHOTO_H + BOX_H, PHOTO_W, BOX_H);
         }
 
