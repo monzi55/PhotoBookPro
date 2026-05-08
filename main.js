@@ -226,13 +226,31 @@ async function handleImageSelect(e) {
 
     showLoading('画像を処理中...');
     
+    let newPhotos = [];
     for (const file of files) {
         try {
             const photoData = await processImage(file);
-            state.photos.push(photoData);
+            newPhotos.push(photoData);
         } catch (err) {
             console.error('Error processing image:', err);
         }
+    }
+
+    if (state.currentMode === 'boundary') {
+        for (const p of newPhotos) {
+            let last = state.photos[state.photos.length - 1];
+            if (last && !last.src2) {
+                last.src2 = p.src;
+            } else {
+                let entry = { ...p };
+                entry.src2 = null;
+                entry.remarks = '';
+                entry.installation = '';
+                state.photos.push(entry);
+            }
+        }
+    } else {
+        state.photos.push(...newPhotos);
     }
 
     updateUI();
@@ -330,7 +348,10 @@ function renderPhotoList() {
                 </div>
                 <div class="info-row">
                     <span class="label">撮影年月日</span>
-                    <input type="date" class="date-input" value="${photo.date}" onchange="updatePhotoData('${photo.id}', 'date', this.value)">
+                    <div style="display:flex; gap:0.5rem">
+                        <input type="date" class="date-input" value="${photo.date}" onchange="updatePhotoData('${photo.id}', 'date', this.value)" style="flex:1">
+                        <button class="btn secondary-btn small" onclick="updatePhotoData('${photo.id}', 'date', ''); renderPhotoList();" style="padding:0.25rem 0.5rem">クリア</button>
+                    </div>
                 </div>
                 <div class="info-row">
                     <span class="label">備考</span>
@@ -367,7 +388,10 @@ function renderPhotoList() {
                 </div>
                 <div class="info-row">
                     <span class="label">撮影年月日</span>
-                    <input type="date" class="date-input" value="${photo.date}" onchange="updatePhotoData('${photo.id}', 'date', this.value)">
+                    <div style="display:flex; gap:0.5rem">
+                        <input type="date" class="date-input" value="${photo.date}" onchange="updatePhotoData('${photo.id}', 'date', this.value)" style="flex:1">
+                        <button class="btn secondary-btn small" onclick="updatePhotoData('${photo.id}', 'date', ''); renderPhotoList();" style="padding:0.25rem 0.5rem">クリア</button>
+                    </div>
                 </div>
                 <div class="info-row">
                     <span class="label">備考</span>
@@ -397,13 +421,23 @@ function renderPhotoList() {
             `;
         }
 
+        let imagesHtml = `<img src="${photo.src}" class="photo-preview">`;
+        if (state.currentMode === 'boundary') {
+            imagesHtml = `
+                <div style="display:flex; gap:0.5rem; margin-bottom:0.5rem;">
+                    <img src="${photo.src}" class="photo-preview" style="flex:1; width:calc(50% - 0.25rem);">
+                    ${photo.src2 ? `<img src="${photo.src2}" class="photo-preview" style="flex:1; width:calc(50% - 0.25rem);">` : `<div class="photo-preview" style="flex:1; width:calc(50% - 0.25rem); display:flex; align-items:center; justify-content:center; background:#f1f5f9; color:#94a3b8;">写真を追加</div>`}
+                </div>
+            `;
+        }
+
         card.innerHTML = `
             <div class="photo-card-header">
                 <div class="drag-handle"><i data-lucide="grip-vertical"></i></div>
                 <button class="remove-photo" onclick="removePhoto('${photo.id}')"><i data-lucide="x"></i></button>
             </div>
             <div class="card-body-layout">
-                <img src="${photo.src}" class="photo-preview">
+                ${imagesHtml}
                 <div class="photo-info">${infoHtml}</div>
             </div>
         `;
@@ -435,10 +469,12 @@ window.showSelectionModal = (photoId, type) => {
     const titles = { titles: 'タイトル', remarks: '備考', types: '境界標の種類', installations: '設置種別' };
     document.getElementById('selection-title').textContent = `${titles[type]}を選択`;
     
+    const allOptions = ['', ...options];
+    
     const container = document.getElementById('selection-options');
-    container.innerHTML = options.map(opt => `
+    container.innerHTML = allOptions.map(opt => `
         <div class="selection-option ${opt === currentVal ? 'selected' : ''}" onclick="selectOption('${photoId}', '${type}', '${opt.replace(/'/g, "\\'")}')">
-            ${opt}
+            ${opt === '' ? '（空白）' : opt}
         </div>
     `).join('');
     elements.selectionModal.classList.remove('hidden');
@@ -545,21 +581,26 @@ async function generatePDF() {
             const TOTAL_W = (PHOTO_W + LABEL_W) * 2 + COL_GAP;
             const MX = (210 - TOTAL_W) / 2, MY = 15;
             for (let i = 0; i < state.photos.length; i++) {
-                if (i > 0 && i % 6 === 0) doc.addPage();
-                const p = i % 6, col = p % 2, row = Math.floor(p / 2);
-                const x = MX + col * (PHOTO_W + LABEL_W + COL_GAP/2) + (col === 1 ? COL_GAP/2 : 0);
-                const y = MY + row * (PHOTO_H + TOP_BOX_H + BTM_BOX_H * 2 + ROW_GAP);
+                if (i > 0 && i % 3 === 0) doc.addPage();
+                const p = i % 3, y = MY + p * (PHOTO_H + TOP_BOX_H + BTM_BOX_H * 2 + ROW_GAP);
                 const photo = state.photos[i];
-                const topText = `${photo.title}  ${photo.type}  ${photo.installation}`;
-                doc.addImage(textToImg(topText, PHOTO_W, TOP_BOX_H, 9), 'JPEG', x + (col === 1 ? 0 : LABEL_W), y, PHOTO_W, TOP_BOX_H);
-                const px = x + (col === 1 ? 0 : LABEL_W), py = y + TOP_BOX_H;
-                doc.addImage(photo.src, 'JPEG', px, py, PHOTO_W, PHOTO_H);
-                doc.rect(px, py, PHOTO_W, PHOTO_H);
-                const labelX = col === 0 ? x : x + PHOTO_W;
-                const labelText = col === 0 ? "遠　景" : "近　景";
-                doc.addImage(textToImg(labelText, LABEL_W, PHOTO_H, 10, 'center', true), 'JPEG', labelX, py, LABEL_W, PHOTO_H);
-                doc.addImage(textToImg(`撮影年月日: ${photo.date}`, PHOTO_W, BTM_BOX_H, 9), 'JPEG', px, py + PHOTO_H, PHOTO_W, BTM_BOX_H);
-                doc.addImage(textToImg(photo.remarks, PHOTO_W, BTM_BOX_H, 9), 'JPEG', px, py + PHOTO_H + BTM_BOX_H, PHOTO_W, BTM_BOX_H);
+                const topText = `${photo.title}    ${photo.type}    ${photo.installation}`;
+                doc.addImage(textToImg(topText, TOTAL_W, TOP_BOX_H, 9), 'JPEG', MX, y, TOTAL_W, TOP_BOX_H);
+                
+                const px1 = MX + LABEL_W, py = y + TOP_BOX_H;
+                doc.addImage(photo.src, 'JPEG', px1, py, PHOTO_W, PHOTO_H);
+                doc.rect(px1, py, PHOTO_W, PHOTO_H);
+                doc.addImage(textToImg("遠　景", LABEL_W, PHOTO_H, 10, 'center', true), 'JPEG', MX, py, LABEL_W, PHOTO_H);
+                
+                const x2 = MX + PHOTO_W + LABEL_W + COL_GAP;
+                const px2 = x2;
+                if (photo.src2) doc.addImage(photo.src2, 'JPEG', px2, py, PHOTO_W, PHOTO_H);
+                doc.rect(px2, py, PHOTO_W, PHOTO_H);
+                doc.addImage(textToImg("近　景", LABEL_W, PHOTO_H, 10, 'center', true), 'JPEG', x2 + PHOTO_W, py, LABEL_W, PHOTO_H);
+                
+                const dateText = photo.date ? `撮影年月日: ${photo.date}` : '撮影年月日:';
+                doc.addImage(textToImg(dateText, TOTAL_W, BTM_BOX_H, 9), 'JPEG', MX, py + PHOTO_H, TOTAL_W, BTM_BOX_H);
+                doc.addImage(textToImg(photo.remarks, TOTAL_W, BTM_BOX_H, 9), 'JPEG', MX, py + PHOTO_H + BTM_BOX_H, TOTAL_W, BTM_BOX_H);
             }
         } else if (state.currentMode === 'section') {
             const PHOTO_W = 96, PHOTO_H = 72, BOX_H = 8, REMARK_W = 80, GAP = 10;
