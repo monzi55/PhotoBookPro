@@ -47,7 +47,7 @@ const elements = {
     backToModes: document.getElementById('back-to-modes'),
     backToUpload: document.getElementById('back-to-upload'),
     backToModesFromSettings: document.getElementById('back-to-modes-from-settings'),
-    proceedToUpload: document.getElementById('proceed-to-upload'),
+    closeSettingsBtn: document.getElementById('close-settings-btn'),
     settingsModeLabel: document.getElementById('settings-mode-label'),
     settingsTabs: document.getElementById('settings-tabs'),
     newMasterInput: document.getElementById('new-master-input'),
@@ -84,18 +84,26 @@ function setupEventListeners() {
     document.querySelectorAll('.mode-card').forEach(card => {
         card.addEventListener('click', () => {
             state.currentMode = card.dataset.mode;
-            state.currentSettingsTab = 'titles'; // Reset tab
-            showMasterSettingsScreen();
+            showUploadScreen();
         });
     });
 
     elements.backToModesFromSettings.addEventListener('click', () => {
-        state.currentMode = null;
-        showModeSelection();
+        elements.masterSettingsScreen.classList.add('hidden');
+        if (state.photos.length > 0) {
+            updateUI();
+        } else {
+            showUploadScreen();
+        }
     });
 
-    elements.proceedToUpload.addEventListener('click', () => {
-        showUploadScreen();
+    elements.closeSettingsBtn.addEventListener('click', () => {
+        elements.masterSettingsScreen.classList.add('hidden');
+        if (state.photos.length > 0) {
+            updateUI();
+        } else {
+            showUploadScreen();
+        }
     });
 
     elements.addMasterBtn.addEventListener('click', () => {
@@ -143,6 +151,7 @@ function showModeSelection() {
     elements.masterSettingsScreen.classList.add('hidden');
     elements.emptyState.classList.add('hidden');
     elements.photoListContainer.classList.add('hidden');
+    elements.masterBtn.classList.add('hidden');
 }
 
 const MODE_NAMES = {
@@ -156,7 +165,9 @@ function showMasterSettingsScreen() {
     elements.masterSettingsScreen.classList.remove('hidden');
     elements.emptyState.classList.add('hidden');
     elements.photoListContainer.classList.add('hidden');
+    elements.masterBtn.classList.add('hidden');
     
+    state.currentSettingsTab = 'titles'; // Reset tab when opened
     elements.settingsModeLabel.textContent = MODE_NAMES[state.currentMode];
     renderMasterSettingsTabs();
 }
@@ -203,6 +214,7 @@ function showUploadScreen() {
     elements.masterSettingsScreen.classList.add('hidden');
     elements.emptyState.classList.remove('hidden');
     elements.photoListContainer.classList.add('hidden');
+    elements.masterBtn.classList.remove('hidden');
     
     document.getElementById('empty-state-title').textContent = `${MODE_NAMES[state.currentMode]}の写真を読み込んでください`;
 }
@@ -294,6 +306,7 @@ function updateUI() {
             'section': '断面用'
         };
         elements.currentModeLabel.textContent = modeLabels[state.currentMode];
+        elements.masterBtn.classList.remove('hidden');
     }
     renderPhotoList();
 }
