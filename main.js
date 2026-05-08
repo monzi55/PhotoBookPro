@@ -35,6 +35,7 @@ let state = {
 // DOM Elements
 const elements = {
     modeSelection: document.getElementById('mode-selection'),
+    masterSettingsScreen: document.getElementById('master-settings-screen'),
     emptyState: document.getElementById('empty-state'),
     photoListContainer: document.getElementById('photo-list-container'),
     imageInput: document.getElementById('image-input'),
@@ -45,12 +46,22 @@ const elements = {
     generatePdfBtn: document.getElementById('generate-pdf-btn'),
     backToModes: document.getElementById('back-to-modes'),
     backToUpload: document.getElementById('back-to-upload'),
+    backToModesFromSettings: document.getElementById('back-to-modes-from-settings'),
+    proceedToUpload: document.getElementById('proceed-to-upload'),
+    settingsModeLabel: document.getElementById('settings-mode-label'),
+    settingsTabs: document.getElementById('settings-tabs'),
+    newMasterInput: document.getElementById('new-master-input'),
+    addMasterBtn: document.getElementById('add-master-btn'),
+    masterSettingsList: document.getElementById('master-settings-list'),
     masterBtn: document.getElementById('master-btn'),
     masterModal: document.getElementById('master-modal'),
     selectionModal: document.getElementById('selection-modal'),
     loadingOverlay: document.getElementById('loading-overlay'),
     loadingText: document.getElementById('loading-text')
 };
+
+// Current settings tab state
+state.currentSettingsTab = 'titles';
 
 // Initialize
 function init() {
@@ -73,8 +84,27 @@ function setupEventListeners() {
     document.querySelectorAll('.mode-card').forEach(card => {
         card.addEventListener('click', () => {
             state.currentMode = card.dataset.mode;
-            showUploadScreen();
+            state.currentSettingsTab = 'titles'; // Reset tab
+            showMasterSettingsScreen();
         });
+    });
+
+    elements.backToModesFromSettings.addEventListener('click', () => {
+        state.currentMode = null;
+        showModeSelection();
+    });
+
+    elements.proceedToUpload.addEventListener('click', () => {
+        showUploadScreen();
+    });
+
+    elements.addMasterBtn.addEventListener('click', () => {
+        const val = elements.newMasterInput.value.trim();
+        if (!val) return;
+        state.masters[state.currentMode][state.currentSettingsTab].push(val);
+        localStorage.setItem('photobook_masters', JSON.stringify(state.masters));
+        elements.newMasterInput.value = '';
+        renderMasterSettingsList();
     });
 
     elements.backToModes.addEventListener('click', () => {
@@ -94,7 +124,11 @@ function setupEventListeners() {
     elements.generatePdfBtn.addEventListener('click', generatePDF);
     
     elements.masterBtn.addEventListener('click', () => {
-        alert('マスターデータの編集は設定画面から行えます（開発中）');
+        if (!state.currentMode) {
+            alert('先に写真帳の様式を選択してください。');
+        } else {
+            showMasterSettingsScreen();
+        }
     });
     
     document.querySelectorAll('.close-modal').forEach(btn => {
@@ -106,21 +140,71 @@ function setupEventListeners() {
 
 function showModeSelection() {
     elements.modeSelection.classList.remove('hidden');
+    elements.masterSettingsScreen.classList.add('hidden');
     elements.emptyState.classList.add('hidden');
     elements.photoListContainer.classList.add('hidden');
 }
 
+const MODE_NAMES = {
+    'registration': '登記用写真帳',
+    'boundary': '準拠点・境界点用',
+    'section': '断面用写真帳'
+};
+
+function showMasterSettingsScreen() {
+    elements.modeSelection.classList.add('hidden');
+    elements.masterSettingsScreen.classList.remove('hidden');
+    elements.emptyState.classList.add('hidden');
+    elements.photoListContainer.classList.add('hidden');
+    
+    elements.settingsModeLabel.textContent = MODE_NAMES[state.currentMode];
+    renderMasterSettingsTabs();
+}
+
+function renderMasterSettingsTabs() {
+    const modeMasters = state.masters[state.currentMode];
+    const keys = Object.keys(modeMasters);
+    
+    const LABELS = { titles: 'タイトル', remarks: '備考', types: '境界標の種類', installations: '設置種別' };
+    
+    elements.settingsTabs.innerHTML = keys.map(key => `
+        <button class="tab-btn ${state.currentSettingsTab === key ? 'active' : ''}" data-tab="${key}">${LABELS[key]}</button>
+    `).join('');
+
+    elements.settingsTabs.querySelectorAll('.tab-btn').forEach(btn => {
+        btn.addEventListener('click', () => {
+            state.currentSettingsTab = btn.dataset.tab;
+            renderMasterSettingsTabs(); // Refresh active state
+        });
+    });
+
+    renderMasterSettingsList();
+}
+
+function renderMasterSettingsList() {
+    const list = state.masters[state.currentMode][state.currentSettingsTab];
+    elements.masterSettingsList.innerHTML = list.map((item, index) => `
+        <li class="master-item">
+            <span>${item}</span>
+            <button class="icon-btn" onclick="deleteMasterItem(${index})"><i data-lucide="trash-2" style="color:var(--danger)"></i></button>
+        </li>
+    `).join('');
+    lucide.createIcons();
+}
+
+window.deleteMasterItem = (index) => {
+    state.masters[state.currentMode][state.currentSettingsTab].splice(index, 1);
+    localStorage.setItem('photobook_masters', JSON.stringify(state.masters));
+    renderMasterSettingsList();
+};
+
 function showUploadScreen() {
     elements.modeSelection.classList.add('hidden');
+    elements.masterSettingsScreen.classList.add('hidden');
     elements.emptyState.classList.remove('hidden');
     elements.photoListContainer.classList.add('hidden');
     
-    const modeNames = {
-        'registration': '登記用写真帳',
-        'boundary': '準拠点・境界点用',
-        'section': '断面用写真帳'
-    };
-    document.getElementById('empty-state-title').textContent = `${modeNames[state.currentMode]}の写真を読み込んでください`;
+    document.getElementById('empty-state-title').textContent = `${MODE_NAMES[state.currentMode]}の写真を読み込んでください`;
 }
 
 // Image Handling
@@ -288,10 +372,6 @@ function renderPhotoList() {
                         <span id="title-${photo.id}">${photo.title}</span>
                         <i data-lucide="chevron-down"></i>
                     </div>
-                </div>
-                <div class="info-row">
-                    <span class="label">撮影年月日</span>
-                    <input type="date" class="date-input" value="${photo.date}" onchange="updatePhotoData('${photo.id}', 'date', this.value)">
                 </div>
                 <div class="info-row">
                     <span class="label">備考</span>

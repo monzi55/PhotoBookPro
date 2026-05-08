@@ -36,7 +36,7 @@
     <div id="app">
         <header>
             <div class="header-content">
-                <h1><i data-lucide="camera"></i> PhotoBook Pro <span class="version">v2.0.0</span></h1>
+                <h1><i data-lucide="camera"></i> PhotoBook Pro <span class="version">v2.0.1</span></h1>
                 <div class="header-actions">
                     <button id="master-btn" class="icon-btn" title="定型文編集">
                         <i data-lucide="settings"></i>
@@ -77,6 +77,33 @@
                         </div>
                         <i data-lucide="chevron-right"></i>
                     </button>
+                </div>
+            </div>
+
+            <!-- 1.5 Master Settings Screen (Initially Hidden) -->
+            <div id="master-settings-screen" class="hidden">
+                <div class="list-header">
+                    <div class="list-title-group">
+                        <button id="back-to-modes-from-settings" class="icon-btn" title="戻る">
+                            <i data-lucide="arrow-left"></i>
+                        </button>
+                        <h2>定型文の設定: <span id="settings-mode-label"></span></h2>
+                    </div>
+                    <div class="list-actions">
+                        <button id="proceed-to-upload" class="btn accent-btn">
+                            次へ <i data-lucide="arrow-right"></i>
+                        </button>
+                    </div>
+                </div>
+                <div class="master-settings-body">
+                    <div class="tabs" id="settings-tabs">
+                        <!-- Dynamic tabs -->
+                    </div>
+                    <div class="master-input-group">
+                        <input type="text" id="new-master-input" placeholder="新しい項目を追加...">
+                        <button id="add-master-btn" class="btn primary-btn small">追加</button>
+                    </div>
+                    <ul id="master-settings-list" class="master-list"></ul>
                 </div>
             </div>
 
