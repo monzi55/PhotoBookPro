@@ -37,21 +37,68 @@
         </header>
 
         <main>
-            <div id="empty-state" class="empty-state">
+            <!-- 1. Mode Selection Screen -->
+            <div id="mode-selection" class="mode-selection">
+                <div class="selection-header">
+                    <h2>作成する写真帳の様式を選択</h2>
+                    <p>用途に合わせて最適なレイアウトを自動生成します。</p>
+                </div>
+                <div class="mode-grid">
+                    <button class="mode-card" data-mode="registration">
+                        <div class="mode-icon"><i data-lucide="file-text"></i></div>
+                        <div class="mode-info">
+                            <h3>登記用写真帳</h3>
+                            <p>一般的な登記申請用の6枚配置レイアウト</p>
+                        </div>
+                        <i data-lucide="chevron-right"></i>
+                    </button>
+                    <button class="mode-card" data-mode="boundary">
+                        <div class="mode-icon"><i data-lucide="map-pin"></i></div>
+                        <div class="mode-info">
+                            <h3>準拠点・境界点用</h3>
+                            <p>遠景・近景のペア配置と詳細情報の入力</p>
+                        </div>
+                        <i data-lucide="chevron-right"></i>
+                    </button>
+                    <button class="mode-card" data-mode="section">
+                        <div class="mode-icon"><i data-lucide="layout"></i></div>
+                        <div class="mode-info">
+                            <h3>断面用写真帳</h3>
+                            <p>写真を左寄せし、右側に詳細な備考欄を配置</p>
+                        </div>
+                        <i data-lucide="chevron-right"></i>
+                    </button>
+                </div>
+            </div>
+
+            <!-- 2. Photo Loading Screen (Initially Hidden) -->
+            <div id="empty-state" class="empty-state hidden">
                 <div class="empty-icon">
                     <i data-lucide="image-plus"></i>
                 </div>
-                <h2>写真を読み込んでください</h2>
+                <h2 id="empty-state-title">写真を読み込んでください</h2>
                 <p>デバイスから複数の写真を選択して、PDF写真帳を簡単に作成できます。</p>
-                <label for="image-input" class="btn primary-btn">
-                    <i data-lucide="plus"></i> 写真を選択
-                </label>
+                <div class="empty-actions">
+                    <label for="image-input" class="btn primary-btn">
+                        <i data-lucide="plus"></i> 写真を選択
+                    </label>
+                    <button id="back-to-modes" class="btn secondary-btn">
+                        様式選択に戻る
+                    </button>
+                </div>
                 <input type="file" id="image-input" accept="image/*" multiple hidden>
             </div>
 
+            <!-- 3. Photo List / Edit Screen (Initially Hidden) -->
             <div id="photo-list-container" class="hidden">
                 <div class="list-header">
-                    <span id="photo-count">0枚の写真</span>
+                    <div class="list-title-group">
+                        <button id="back-to-upload" class="icon-btn" title="戻る">
+                            <i data-lucide="arrow-left"></i>
+                        </button>
+                        <span id="current-mode-label" class="badge">登記用</span>
+                        <span id="photo-count">0枚の写真</span>
+                    </div>
                     <div class="list-actions">
                         <label for="image-input-append" class="btn secondary-btn small">
                             <i data-lucide="plus"></i> 追加
