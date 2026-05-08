@@ -504,7 +504,7 @@ async function generatePDF() {
         // Text Helper with Wrapping
         const textToImg = (text, w, h, fontSize = 10, align = 'left', vertical = false) => {
             const canvas = document.createElement('canvas');
-            const scale = 4;
+            const scale = 8;
             canvas.width = w * scale;
             canvas.height = h * scale;
             const ctx = canvas.getContext('2d');
@@ -516,7 +516,7 @@ async function generatePDF() {
             ctx.strokeRect(0, 0, w, h);
             ctx.fillStyle = '#333';
             const fontSizePx = fontSize * 25.4 / 72;
-            ctx.font = `${fontSizePx}px "Noto Sans JP", sans-serif`;
+            ctx.font = `${fontSizePx}px "MS Gothic", "ＭＳ ゴシック", sans-serif`;
             
             if (vertical) {
                 ctx.save();
@@ -558,7 +558,7 @@ async function generatePDF() {
                     ctx.fillText(line, padding, y);
                 }
             }
-            return canvas.toDataURL('image/jpeg', 0.9);
+            return canvas.toDataURL('image/png');
         };
 
         if (state.currentMode === 'registration') {
@@ -569,11 +569,11 @@ async function generatePDF() {
                 const p = i % 6, col = p % 2, row = Math.floor(p / 2);
                 const x = MX + col * (PHOTO_W + COL_GAP), y = MY + row * (PHOTO_H + BOX_H * 3 + ROW_GAP);
                 const photo = state.photos[i];
-                doc.addImage(textToImg(photo.title, PHOTO_W, BOX_H), 'JPEG', x, y, PHOTO_W, BOX_H);
+                doc.addImage(textToImg(photo.title, PHOTO_W, BOX_H), 'PNG', x, y, PHOTO_W, BOX_H);
                 doc.addImage(photo.src, 'JPEG', x, y + BOX_H, PHOTO_W, PHOTO_H);
                 doc.rect(x, y + BOX_H, PHOTO_W, PHOTO_H);
-                doc.addImage(textToImg(`撮影日: ${photo.date}`, PHOTO_W, BOX_H), 'JPEG', x, y + BOX_H + PHOTO_H, PHOTO_W, BOX_H);
-                doc.addImage(textToImg(photo.remarks, PHOTO_W, BOX_H), 'JPEG', x, y + BOX_H + PHOTO_H + BOX_H, PHOTO_W, BOX_H);
+                doc.addImage(textToImg(`撮影日: ${photo.date}`, PHOTO_W, BOX_H), 'PNG', x, y + BOX_H + PHOTO_H, PHOTO_W, BOX_H);
+                doc.addImage(textToImg(photo.remarks, PHOTO_W, BOX_H), 'PNG', x, y + BOX_H + PHOTO_H + BOX_H, PHOTO_W, BOX_H);
             }
         } else if (state.currentMode === 'boundary') {
             const PHOTO_W = 92, PHOTO_H = 69, LABEL_W = 5, TOP_BOX_H = 7, BTM_BOX_H = 6;
@@ -585,22 +585,22 @@ async function generatePDF() {
                 const p = i % 3, y = MY + p * (PHOTO_H + TOP_BOX_H + BTM_BOX_H * 2 + ROW_GAP);
                 const photo = state.photos[i];
                 const topText = `${photo.title}    ${photo.type}    ${photo.installation}`;
-                doc.addImage(textToImg(topText, TOTAL_W, TOP_BOX_H, 9), 'JPEG', MX, y, TOTAL_W, TOP_BOX_H);
+                doc.addImage(textToImg(topText, TOTAL_W, TOP_BOX_H, 9), 'PNG', MX, y, TOTAL_W, TOP_BOX_H);
                 
                 const px1 = MX + LABEL_W, py = y + TOP_BOX_H;
                 doc.addImage(photo.src, 'JPEG', px1, py, PHOTO_W, PHOTO_H);
                 doc.rect(px1, py, PHOTO_W, PHOTO_H);
-                doc.addImage(textToImg("遠　景", LABEL_W, PHOTO_H, 10, 'center', true), 'JPEG', MX, py, LABEL_W, PHOTO_H);
+                doc.addImage(textToImg("遠　景", LABEL_W, PHOTO_H, 10, 'center', true), 'PNG', MX, py, LABEL_W, PHOTO_H);
                 
                 const x2 = MX + PHOTO_W + LABEL_W + COL_GAP;
                 const px2 = x2;
                 if (photo.src2) doc.addImage(photo.src2, 'JPEG', px2, py, PHOTO_W, PHOTO_H);
                 doc.rect(px2, py, PHOTO_W, PHOTO_H);
-                doc.addImage(textToImg("近　景", LABEL_W, PHOTO_H, 10, 'center', true), 'JPEG', x2 + PHOTO_W, py, LABEL_W, PHOTO_H);
+                doc.addImage(textToImg("近　景", LABEL_W, PHOTO_H, 10, 'center', true), 'PNG', x2 + PHOTO_W, py, LABEL_W, PHOTO_H);
                 
                 const dateText = photo.date ? `撮影年月日: ${photo.date}` : '撮影年月日:';
-                doc.addImage(textToImg(dateText, TOTAL_W, BTM_BOX_H, 9), 'JPEG', MX, py + PHOTO_H, TOTAL_W, BTM_BOX_H);
-                doc.addImage(textToImg(photo.remarks, TOTAL_W, BTM_BOX_H, 9), 'JPEG', MX, py + PHOTO_H + BTM_BOX_H, TOTAL_W, BTM_BOX_H);
+                doc.addImage(textToImg(dateText, TOTAL_W, BTM_BOX_H, 9), 'PNG', MX, py + PHOTO_H, TOTAL_W, BTM_BOX_H);
+                doc.addImage(textToImg(photo.remarks, TOTAL_W, BTM_BOX_H, 9), 'PNG', MX, py + PHOTO_H + BTM_BOX_H, TOTAL_W, BTM_BOX_H);
             }
         } else if (state.currentMode === 'section') {
             const PHOTO_W = 96, PHOTO_H = 72, BOX_H = 8, REMARK_W = 80, GAP = 10;
@@ -609,11 +609,11 @@ async function generatePDF() {
                 if (i > 0 && i % 3 === 0) doc.addPage();
                 const p = i % 3, y = MY + p * (PHOTO_H + BOX_H + GAP);
                 const photo = state.photos[i];
-                doc.addImage(textToImg(photo.title, PHOTO_W, BOX_H, 11), 'JPEG', MX, y, PHOTO_W, BOX_H);
+                doc.addImage(textToImg(photo.title, PHOTO_W, BOX_H, 11), 'PNG', MX, y, PHOTO_W, BOX_H);
                 doc.addImage(photo.src, 'JPEG', MX, y + BOX_H, PHOTO_W, PHOTO_H);
                 doc.rect(MX, y + BOX_H, PHOTO_W, PHOTO_H);
                 const remarkH = PHOTO_H + BOX_H;
-                doc.addImage(textToImg(photo.remarks, REMARK_W, remarkH, 10), 'JPEG', MX + PHOTO_W + 5, y, REMARK_W, remarkH);
+                doc.addImage(textToImg(photo.remarks, REMARK_W, remarkH, 10), 'PNG', MX + PHOTO_W + 5, y, REMARK_W, remarkH);
             }
         }
         const n = new Date();
