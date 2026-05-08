@@ -62,6 +62,14 @@ header h1 {
     color: var(--primary);
 }
 
+.version {
+    font-size: 0.875rem;
+    color: var(--text-muted);
+    font-weight: 500;
+    margin-left: 0.5rem;
+    padding-top: 0.25rem;
+}
+
 main {
     flex: 1;
     max-width: 800px;

@@ -1,4 +1,4 @@
-const CACHE_NAME = 'photobook-v1';
+const CACHE_NAME = 'photobook-v1.0.1';
 const ASSETS = [
   './',
   './index.html',
@@ -17,6 +17,24 @@ self.addEventListener('install', (event) => {
       return cache.addAll(ASSETS);
     })
   );
+  // Force the waiting service worker to become the active service worker.
+  self.skipWaiting();
+});
+
+self.addEventListener('activate', (event) => {
+  event.waitUntil(
+    caches.keys().then((cacheNames) => {
+      return Promise.all(
+        cacheNames.map((cacheName) => {
+          if (cacheName !== CACHE_NAME) {
+            return caches.delete(cacheName);
+          }
+        })
+      );
+    })
+  );
+  // Tell the active service worker to take control of the page immediately.
+  self.clients.claim();
 });
 
 self.addEventListener('fetch', (event) => {
