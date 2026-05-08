@@ -1,4 +1,4 @@
-const CACHE_NAME = 'photobook-v1.0.1';
+const CACHE_NAME = 'photobook-v2.0.0';
 const ASSETS = [
   './',
   './index.html',
