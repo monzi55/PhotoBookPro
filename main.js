@@ -531,31 +531,32 @@ async function generatePDF() {
                 ctx.restore();
             } else {
                 ctx.textBaseline = 'top';
-                const padding = 2;
+                const padX = 2;
+                const padY = 0.5; // Changed from 2 to 0.5 to lift text up and prevent iOS cutoff
                 const lineHeight = fontSizePx * 1.4;
-                const maxWidth = w - padding * 2;
+                const maxWidth = w - padX * 2;
                 
                 if (align === 'center') {
                     ctx.textAlign = 'center';
-                    ctx.fillText(text, w / 2, padding);
+                    ctx.fillText(text, w / 2, padY);
                 } else {
                     ctx.textAlign = 'left';
                     // Basic wrapping logic
                     const words = text.split(''); // For Japanese, split by character
                     let line = '';
-                    let y = padding;
+                    let y = padY;
                     for (let n = 0; n < words.length; n++) {
                         let testLine = line + words[n];
                         let metrics = ctx.measureText(testLine);
                         if (metrics.width > maxWidth && n > 0) {
-                            ctx.fillText(line, padding, y);
+                            ctx.fillText(line, padX, y);
                             line = words[n];
                             y += lineHeight;
                         } else {
                             line = testLine;
                         }
                     }
-                    ctx.fillText(line, padding, y);
+                    ctx.fillText(line, padX, y);
                 }
             }
             return canvas.toDataURL('image/png');
