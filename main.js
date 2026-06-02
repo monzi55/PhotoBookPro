@@ -299,6 +299,8 @@ async function processImage(file) {
                 resolve({
                     id: Math.random().toString(36).substr(2, 9),
                     src: compressedDataUrl,
+                    brightness: 100,
+                    contrast: 100,
                     title: modeMasters.titles[0] || '',
                     remarks: modeMasters.remarks[0] || '',
                     type: modeMasters.types ? modeMasters.types[0] : '',
@@ -421,15 +423,32 @@ function renderPhotoList() {
             `;
         }
 
-        let imagesHtml = `<img src="${photo.src}" class="photo-preview">`;
+        const b = photo.brightness || 100;
+        const c = photo.contrast || 100;
+        const filterStyle = `filter: brightness(${b}%) contrast(${c}%);`;
+        
+        let imagesHtml = `<img src="${photo.src}" class="photo-preview" style="${filterStyle}">`;
         if (state.currentMode === 'boundary') {
             imagesHtml = `
                 <div style="display:flex; gap:0.5rem; margin-bottom:0.5rem;">
-                    <img src="${photo.src}" class="photo-preview" style="flex:1; width:calc(50% - 0.25rem);">
-                    ${photo.src2 ? `<img src="${photo.src2}" class="photo-preview" style="flex:1; width:calc(50% - 0.25rem);">` : `<div class="photo-preview" style="flex:1; width:calc(50% - 0.25rem); display:flex; align-items:center; justify-content:center; background:#f1f5f9; color:#94a3b8;">写真を追加</div>`}
+                    <img src="${photo.src}" class="photo-preview" style="flex:1; width:calc(50% - 0.25rem); ${filterStyle}">
+                    ${photo.src2 ? `<img src="${photo.src2}" class="photo-preview" style="flex:1; width:calc(50% - 0.25rem); ${filterStyle}">` : `<div class="photo-preview" style="flex:1; width:calc(50% - 0.25rem); display:flex; align-items:center; justify-content:center; background:#f1f5f9; color:#94a3b8;">写真を追加</div>`}
                 </div>
             `;
         }
+
+        let filterControlsHtml = `
+            <div class="filter-controls" style="margin-top: 0.5rem; display: flex; flex-direction: column; gap: 0.25rem;">
+                <div style="display: flex; align-items: center; gap: 0.5rem;">
+                    <label style="font-size: 0.8rem; width: 4.5rem; color: #64748b;">明るさ</label>
+                    <input type="range" min="50" max="150" value="${b}" oninput="updateImageFilter('${photo.id}', 'brightness', this.value)" style="flex: 1;">
+                </div>
+                <div style="display: flex; align-items: center; gap: 0.5rem;">
+                    <label style="font-size: 0.8rem; width: 4.5rem; color: #64748b;">コントラスト</label>
+                    <input type="range" min="50" max="150" value="${c}" oninput="updateImageFilter('${photo.id}', 'contrast', this.value)" style="flex: 1;">
+                </div>
+            </div>
+        `;
 
         card.innerHTML = `
             <div class="photo-card-header">
@@ -437,7 +456,10 @@ function renderPhotoList() {
                 <button class="remove-photo" onclick="removePhoto('${photo.id}')"><i data-lucide="x"></i></button>
             </div>
             <div class="card-body-layout">
-                ${imagesHtml}
+                <div>
+                    ${imagesHtml}
+                    ${filterControlsHtml}
+                </div>
                 <div class="photo-info">${infoHtml}</div>
             </div>
         `;
@@ -454,6 +476,20 @@ window.removePhoto = (id) => {
 window.updatePhotoData = (id, field, value) => {
     const photo = state.photos.find(p => p.id === id);
     if (photo) photo[field] = value;
+};
+
+window.updateImageFilter = (id, type, value) => {
+    const photo = state.photos.find(p => p.id === id);
+    if (photo) {
+        photo[type] = value;
+        const card = document.querySelector(`.photo-card[data-id="${id}"]`);
+        if (card) {
+            const imgs = card.querySelectorAll('img.photo-preview');
+            imgs.forEach(img => {
+                img.style.filter = `brightness(${photo.brightness || 100}%) contrast(${photo.contrast || 100}%)`;
+            });
+        }
+    }
 };
 
 window.showSelectionModal = (photoId, type) => {
@@ -562,6 +598,23 @@ async function generatePDF() {
             return canvas.toDataURL('image/png');
         };
 
+        const getFilteredImageSrc = async (src, b, c) => {
+            if ((!b || b == 100) && (!c || c == 100)) return src;
+            return new Promise((resolve) => {
+                const img = new Image();
+                img.onload = () => {
+                    const canvas = document.createElement('canvas');
+                    canvas.width = img.width;
+                    canvas.height = img.height;
+                    const ctx = canvas.getContext('2d');
+                    ctx.filter = `brightness(${b}%) contrast(${c}%)`;
+                    ctx.drawImage(img, 0, 0);
+                    resolve(canvas.toDataURL('image/jpeg', 0.8));
+                };
+                img.src = src;
+            });
+        };
+
         if (state.currentMode === 'registration') {
             const PHOTO_W = 84.4, PHOTO_H = 63.3, BOX_H = 6, COL_GAP = 10, ROW_GAP = 12;
             const MX = (210 - (PHOTO_W * 2 + COL_GAP)) / 2, MY = 20;
@@ -570,8 +623,11 @@ async function generatePDF() {
                 const p = i % 6, col = p % 2, row = Math.floor(p / 2);
                 const x = MX + col * (PHOTO_W + COL_GAP), y = MY + row * (PHOTO_H + BOX_H * 3 + ROW_GAP);
                 const photo = state.photos[i];
+                
+                const filteredSrc = await getFilteredImageSrc(photo.src, photo.brightness, photo.contrast);
+
                 doc.addImage(textToImg(photo.title, PHOTO_W, BOX_H), 'PNG', x, y, PHOTO_W, BOX_H);
-                doc.addImage(photo.src, 'JPEG', x, y + BOX_H, PHOTO_W, PHOTO_H);
+                doc.addImage(filteredSrc, 'JPEG', x, y + BOX_H, PHOTO_W, PHOTO_H);
                 doc.rect(x, y + BOX_H, PHOTO_W, PHOTO_H);
                 doc.addImage(textToImg(`撮影日: ${photo.date}`, PHOTO_W, BOX_H), 'PNG', x, y + BOX_H + PHOTO_H, PHOTO_W, BOX_H);
                 doc.addImage(textToImg(photo.remarks, PHOTO_W, BOX_H), 'PNG', x, y + BOX_H + PHOTO_H + BOX_H, PHOTO_W, BOX_H);
@@ -589,13 +645,17 @@ async function generatePDF() {
                 doc.addImage(textToImg(topText, TOTAL_W, TOP_BOX_H, 9), 'PNG', MX, y, TOTAL_W, TOP_BOX_H);
                 
                 const px1 = MX + LABEL_W, py = y + TOP_BOX_H;
-                doc.addImage(photo.src, 'JPEG', px1, py, PHOTO_W, PHOTO_H);
+                const filteredSrc = await getFilteredImageSrc(photo.src, photo.brightness, photo.contrast);
+                doc.addImage(filteredSrc, 'JPEG', px1, py, PHOTO_W, PHOTO_H);
                 doc.rect(px1, py, PHOTO_W, PHOTO_H);
                 doc.addImage(textToImg("遠　景", LABEL_W, PHOTO_H, 10, 'center', true), 'PNG', MX, py, LABEL_W, PHOTO_H);
                 
                 const x2 = MX + PHOTO_W + LABEL_W + COL_GAP;
                 const px2 = x2;
-                if (photo.src2) doc.addImage(photo.src2, 'JPEG', px2, py, PHOTO_W, PHOTO_H);
+                if (photo.src2) {
+                    const filteredSrc2 = await getFilteredImageSrc(photo.src2, photo.brightness, photo.contrast);
+                    doc.addImage(filteredSrc2, 'JPEG', px2, py, PHOTO_W, PHOTO_H);
+                }
                 doc.rect(px2, py, PHOTO_W, PHOTO_H);
                 doc.addImage(textToImg("近　景", LABEL_W, PHOTO_H, 10, 'center', true), 'PNG', x2 + PHOTO_W, py, LABEL_W, PHOTO_H);
                 
@@ -610,8 +670,9 @@ async function generatePDF() {
                 if (i > 0 && i % 3 === 0) doc.addPage();
                 const p = i % 3, y = MY + p * (PHOTO_H + BOX_H + GAP);
                 const photo = state.photos[i];
+                const filteredSrc = await getFilteredImageSrc(photo.src, photo.brightness, photo.contrast);
                 doc.addImage(textToImg(photo.title, PHOTO_W, BOX_H, 11), 'PNG', MX, y, PHOTO_W, BOX_H);
-                doc.addImage(photo.src, 'JPEG', MX, y + BOX_H, PHOTO_W, PHOTO_H);
+                doc.addImage(filteredSrc, 'JPEG', MX, y + BOX_H, PHOTO_W, PHOTO_H);
                 doc.rect(MX, y + BOX_H, PHOTO_W, PHOTO_H);
                 const remarkH = PHOTO_H + BOX_H;
                 doc.addImage(textToImg(photo.remarks, REMARK_W, remarkH, 10), 'PNG', MX + PHOTO_W + 5, y, REMARK_W, remarkH);
