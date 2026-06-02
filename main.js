@@ -607,8 +607,23 @@ async function generatePDF() {
                     canvas.width = img.width;
                     canvas.height = img.height;
                     const ctx = canvas.getContext('2d');
-                    ctx.filter = `brightness(${b}%) contrast(${c}%)`;
                     ctx.drawImage(img, 0, 0);
+
+                    try {
+                        const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+                        const data = imageData.data;
+                        const bMult = b / 100;
+                        const cMult = c / 100;
+                        for (let i = 0; i < data.length; i += 4) {
+                            data[i]   = (data[i] * bMult - 128) * cMult + 128;
+                            data[i+1] = (data[i+1] * bMult - 128) * cMult + 128;
+                            data[i+2] = (data[i+2] * bMult - 128) * cMult + 128;
+                        }
+                        ctx.putImageData(imageData, 0, 0);
+                    } catch (e) {
+                        console.warn("Pixel manipulation failed", e);
+                    }
+                    
                     resolve(canvas.toDataURL('image/jpeg', 0.8));
                 };
                 img.src = src;
