@@ -302,7 +302,7 @@ async function processImage(file) {
                     brightness: 100,
                     contrast: 100,
                     title: modeMasters.titles[0] || '',
-                    remarks: modeMasters.remarks[0] || '',
+                    remarks: '',
                     type: modeMasters.types ? modeMasters.types[0] : '',
                     installation: modeMasters.installations ? modeMasters.installations[0] : '',
                     date: date || new Date().toISOString().split('T')[0]

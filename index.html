@@ -39,7 +39,7 @@
     <div id="app">
         <header>
             <div class="header-content">
-                <h1><i data-lucide="camera"></i> PhotoBook Pro <span class="version">V2.1.1</span></h1>
+                <h1><i data-lucide="camera"></i> PhotoBook Pro <span class="version">V2.1.2</span></h1>
                 <div class="header-actions">
                     <button id="master-btn" class="icon-btn hidden" title="定型文編集">
                         <i data-lucide="settings"></i>
@@ -138,18 +138,18 @@
                         <span id="current-mode-label" class="badge">登記用</span>
                         <span id="photo-count">0枚の写真</span>
                     </div>
-                    <div class="list-actions">
-                        <label for="image-input-append" class="btn secondary-btn small">
-                            <i data-lucide="plus"></i> 追加
-                        </label>
-                        <input type="file" id="image-input-append" accept="image/*" multiple hidden>
-                        <button id="generate-pdf-btn" class="btn accent-btn">
-                            <i data-lucide="file-text"></i> PDF出力
-                        </button>
-                    </div>
                 </div>
                 <div id="photo-list" class="photo-grid">
                     <!-- Photos will be injected here -->
+                </div>
+                <div class="list-actions-bottom" style="display: flex; justify-content: center; gap: 1rem; margin-top: 2rem; margin-bottom: 2rem;">
+                    <label for="image-input-append" class="btn secondary-btn">
+                        <i data-lucide="plus"></i> 写真を追加
+                    </label>
+                    <input type="file" id="image-input-append" accept="image/*" multiple hidden>
+                    <button id="generate-pdf-btn" class="btn accent-btn">
+                        <i data-lucide="file-text"></i> PDF出力
+                    </button>
                 </div>
             </div>
         </main>
