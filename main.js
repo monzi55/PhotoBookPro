@@ -587,7 +587,7 @@ async function generatePDF() {
             : new jsPDF({ orientation: 'p', unit: 'mm', format: 'a4' });
 
         // Text Helper with Wrapping
-        const textToImg = (text, w, h, fontSize = 10, align = 'left', vertical = false, color = '#333', border = true) => {
+        const textToImg = (text, w, h, fontSize = 10, align = 'left', vertical = false, color = '#333', border = true, isBold = false) => {
             const canvas = document.createElement('canvas');
             const scale = 8;
             canvas.width = w * scale;
@@ -603,7 +603,8 @@ async function generatePDF() {
             }
             ctx.fillStyle = color;
             const fontSizePx = fontSize * 25.4 / 72;
-            ctx.font = `${fontSizePx}px "MS Gothic", "ＭＳ ゴシック", sans-serif`;
+            const fontWeight = isBold ? 'bold ' : '';
+            ctx.font = `${fontWeight}${fontSizePx}px "MS Gothic", "ＭＳ ゴシック", sans-serif`;
             
             if (vertical) {
                 ctx.save();
@@ -747,8 +748,9 @@ async function generatePDF() {
             const PHOTO_W = 105.8, PHOTO_H = 79.4, LABEL_H = 7;
             const PAGE_W = 420, PAGE_H = 297;
             const COL_GAP = (PAGE_W - PHOTO_W * 3) / 4;
-            const HEADER_Y = 5, HEADER_H = 14;
-            const FIRST_Y = HEADER_Y + HEADER_H + 3;
+            const HEADER_H = 14;
+            const FIRST_Y = 22; // 写真の開始Y座標
+            const HEADER_Y = FIRST_Y - HEADER_H + 2; // 写真のすぐ上になるように配置
             const ROW_GAP = (PAGE_H - FIRST_Y - 3 * (PHOTO_H + LABEL_H) - 5) / 2;
 
             for (let i = 0; i < state.photos.length; i++) {
@@ -756,7 +758,7 @@ async function generatePDF() {
 
                 if (i % 9 === 0) {
                     doc.addImage(
-                        textToImg('現　況　写　真', PAGE_W, HEADER_H, 24, 'center', false, '#ff0000', false),
+                        textToImg('現　況　写　真', PAGE_W, HEADER_H, 24, 'center', false, '#ff0000', false, true),
                         'PNG', 0, HEADER_Y, PAGE_W, HEADER_H
                     );
                 }
@@ -773,7 +775,7 @@ async function generatePDF() {
 
                 doc.addImage(filteredSrc, 'JPEG', x, y, PHOTO_W, PHOTO_H);
                 doc.addImage(
-                    textToImg(photo.label, PHOTO_W, LABEL_H, 12, 'center', false, '#ff0000', false),
+                    textToImg(photo.label, PHOTO_W, LABEL_H, 12, 'center', false, '#ff0000', false, true),
                     'PNG', x, y + PHOTO_H, PHOTO_W, LABEL_H
                 );
             }
