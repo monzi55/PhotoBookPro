@@ -16,21 +16,45 @@ const MASTERS_DEFAULTS = {
     },
     section: {
         titles: [
-            "1-1’断面", "2-2’断面", "3-3’断面", "4-4’断面", "5-5’断面", "6-6’断面", "7-7’断面", "8-8’断面", "9-9’断面", "10-10’断面",
-            "1’-1断面", "2’-2断面", "3’-3断面", "4’-4断面", "5’-5断面", "6’-6断面", "7’-7断面", "8’-8断面", "9’-9断面", "10’-10断面"
+            "1-1'断面", "2-2'断面", "3-3'断面", "4-4'断面", "5-5'断面", "6-6'断面", "7-7'断面", "8-8'断面", "9-9'断面", "10-10'断面",
+            "1'-1断面", "2'-2断面", "3'-3断面", "4'-4断面", "5'-5断面", "6'-6断面", "7'-7断面", "8'-8断面", "9'-9断面", "10'-10断面"
         ],
         remarks: ["断面図と反対向きから撮影"]
+    },
+    sitesurvey: {
+        labels: (() => {
+            const l = ['全景'];
+            for (let i = 1; i <= 26; i++) l.push(String.fromCharCode(0xFF20 + i));
+            for (let i = 0; i < 26; i++) l.push(String.fromCharCode(0xFF21) + String.fromCharCode(0xFF21 + i));
+            return l;
+        })()
     }
 };
+
+function generateSiteSurveyLabel(index) {
+    if (index === 0) return '全景';
+    if (index <= 26) return String.fromCharCode(0xFF20 + index);
+    const adjusted = index - 27;
+    const first = String.fromCharCode(0xFF21 + Math.floor(adjusted / 26));
+    const second = String.fromCharCode(0xFF21 + (adjusted % 26));
+    return first + second;
+}
 
 const MAX_IMAGE_WIDTH = 1200;
 
 // State
 let state = {
-    currentMode: null, // 'registration', 'boundary', 'section'
+    currentMode: null, // 'registration', 'boundary', 'section', 'sitesurvey'
     photos: [],
     masters: JSON.parse(localStorage.getItem('photobook_masters')) || MASTERS_DEFAULTS
 };
+
+// Ensure new modes are available in masters loaded from localStorage
+Object.keys(MASTERS_DEFAULTS).forEach(mode => {
+    if (!state.masters[mode]) {
+        state.masters[mode] = JSON.parse(JSON.stringify(MASTERS_DEFAULTS[mode]));
+    }
+});
 
 // DOM Elements
 const elements = {
@@ -157,7 +181,8 @@ function showModeSelection() {
 const MODE_NAMES = {
     'registration': '登記用写真帳',
     'boundary': '準拠点・境界点用',
-    'section': '断面用写真帳'
+    'section': '断面用写真帳',
+    'sitesurvey': '敷地調査 現況写真'
 };
 
 function showMasterSettingsScreen() {
@@ -176,7 +201,7 @@ function renderMasterSettingsTabs() {
     const modeMasters = state.masters[state.currentMode];
     const keys = Object.keys(modeMasters);
     
-    const LABELS = { titles: 'タイトル', remarks: '備考', types: '境界標の種類', installations: '設置種別' };
+    const LABELS = { titles: 'タイトル', remarks: '備考', types: '境界標の種類', installations: '設置種別', labels: 'ラベル' };
     
     elements.settingsTabs.innerHTML = keys.map(key => `
         <button class="tab-btn ${state.currentSettingsTab === key ? 'active' : ''}" data-tab="${key}">${LABELS[key]}</button>
@@ -253,6 +278,14 @@ async function handleImageSelect(e) {
         state.photos.push(...newPhotos);
     }
 
+    if (state.currentMode === 'sitesurvey') {
+        const startIdx = state.photos.length - newPhotos.length;
+        const labels = state.masters.sitesurvey.labels;
+        for (let i = startIdx; i < state.photos.length; i++) {
+            state.photos[i].label = labels[i] || generateSiteSurveyLabel(i);
+        }
+    }
+
     updateUI();
     hideLoading();
     e.target.value = '';
@@ -301,7 +334,8 @@ async function processImage(file) {
                     src: compressedDataUrl,
                     brightness: 100,
                     contrast: 100,
-                    title: modeMasters.titles[0] || '',
+                    title: (modeMasters.titles && modeMasters.titles[0]) || '',
+                    label: '',
                     remarks: '',
                     type: modeMasters.types ? modeMasters.types[0] : '',
                     installation: modeMasters.installations ? modeMasters.installations[0] : '',
@@ -323,7 +357,8 @@ function updateUI() {
         const modeLabels = {
             'registration': '登記用',
             'boundary': '準拠点・境界点',
-            'section': '断面用'
+            'section': '断面用',
+            'sitesurvey': '現況写真'
         };
         elements.currentModeLabel.textContent = modeLabels[state.currentMode];
         elements.masterBtn.classList.remove('hidden');
@@ -421,6 +456,16 @@ function renderPhotoList() {
                     </div>
                 </div>
             `;
+        } else if (state.currentMode === 'sitesurvey') {
+            infoHtml = `
+                <div class="info-row">
+                    <span class="label">ラベル</span>
+                    <div class="select-field" onclick="showSelectionModal('${photo.id}', 'labels')">
+                        <span id="labels-${photo.id}">${photo.label}</span>
+                        <i data-lucide="chevron-down"></i>
+                    </div>
+                </div>
+            `;
         }
 
         const b = photo.brightness || 100;
@@ -501,8 +546,9 @@ window.showSelectionModal = (photoId, type) => {
     if (type === 'remarks') currentVal = photo.remarks;
     if (type === 'types') currentVal = photo.type;
     if (type === 'installations') currentVal = photo.installation;
+    if (type === 'labels') currentVal = photo.label;
     
-    const titles = { titles: 'タイトル', remarks: '備考', types: '境界標の種類', installations: '設置種別' };
+    const titles = { titles: 'タイトル', remarks: '備考', types: '境界標の種類', installations: '設置種別', labels: 'ラベル' };
     document.getElementById('selection-title').textContent = `${titles[type]}を選択`;
     
     const allOptions = ['', ...options];
@@ -523,6 +569,7 @@ window.selectOption = (photoId, type, value) => {
         else if (type === 'remarks') photo.remarks = value;
         else if (type === 'types') photo.type = value;
         else if (type === 'installations') photo.installation = value;
+        else if (type === 'labels') photo.label = value;
     }
     elements.selectionModal.classList.add('hidden');
     renderPhotoList();
@@ -535,10 +582,12 @@ async function generatePDF() {
     
     try {
         const { jsPDF } = window.jspdf;
-        const doc = new jsPDF({ orientation: 'p', unit: 'mm', format: 'a4' });
+        const doc = state.currentMode === 'sitesurvey'
+            ? new jsPDF({ orientation: 'l', unit: 'mm', format: 'a3' })
+            : new jsPDF({ orientation: 'p', unit: 'mm', format: 'a4' });
 
         // Text Helper with Wrapping
-        const textToImg = (text, w, h, fontSize = 10, align = 'left', vertical = false) => {
+        const textToImg = (text, w, h, fontSize = 10, align = 'left', vertical = false, color = '#333', border = true) => {
             const canvas = document.createElement('canvas');
             const scale = 8;
             canvas.width = w * scale;
@@ -547,10 +596,12 @@ async function generatePDF() {
             ctx.scale(scale, scale);
             ctx.fillStyle = '#fff';
             ctx.fillRect(0, 0, w, h);
-            ctx.strokeStyle = '#ccc';
-            ctx.lineWidth = 0.2;
-            ctx.strokeRect(0, 0, w, h);
-            ctx.fillStyle = '#333';
+            if (border) {
+                ctx.strokeStyle = '#ccc';
+                ctx.lineWidth = 0.2;
+                ctx.strokeRect(0, 0, w, h);
+            }
+            ctx.fillStyle = color;
             const fontSizePx = fontSize * 25.4 / 72;
             ctx.font = `${fontSizePx}px "MS Gothic", "ＭＳ ゴシック", sans-serif`;
             
@@ -691,6 +742,40 @@ async function generatePDF() {
                 doc.rect(MX, y + BOX_H, PHOTO_W, PHOTO_H);
                 const remarkH = PHOTO_H + BOX_H;
                 doc.addImage(textToImg(photo.remarks, REMARK_W, remarkH, 10), 'PNG', MX + PHOTO_W + 5, y, REMARK_W, remarkH);
+            }
+        } else if (state.currentMode === 'sitesurvey') {
+            const PHOTO_W = 105.8, PHOTO_H = 79.4, LABEL_H = 7;
+            const PAGE_W = 420, PAGE_H = 297;
+            const COL_GAP = (PAGE_W - PHOTO_W * 3) / 4;
+            const HEADER_Y = 5, HEADER_H = 14;
+            const FIRST_Y = HEADER_Y + HEADER_H + 3;
+            const ROW_GAP = (PAGE_H - FIRST_Y - 3 * (PHOTO_H + LABEL_H) - 5) / 2;
+
+            for (let i = 0; i < state.photos.length; i++) {
+                if (i > 0 && i % 9 === 0) doc.addPage();
+
+                if (i % 9 === 0) {
+                    doc.addImage(
+                        textToImg('現　況　写　真', PAGE_W, HEADER_H, 24, 'center', false, '#ff0000', false),
+                        'PNG', 0, HEADER_Y, PAGE_W, HEADER_H
+                    );
+                }
+
+                const posInPage = i % 9;
+                const col = posInPage % 3;
+                const row = Math.floor(posInPage / 3);
+
+                const x = COL_GAP + col * (PHOTO_W + COL_GAP);
+                const y = FIRST_Y + row * (PHOTO_H + LABEL_H + ROW_GAP);
+
+                const photo = state.photos[i];
+                const filteredSrc = await getFilteredImageSrc(photo.src, photo.brightness, photo.contrast);
+
+                doc.addImage(filteredSrc, 'JPEG', x, y, PHOTO_W, PHOTO_H);
+                doc.addImage(
+                    textToImg(photo.label, PHOTO_W, LABEL_H, 12, 'center', false, '#ff0000', false),
+                    'PNG', x, y + PHOTO_H, PHOTO_W, LABEL_H
+                );
             }
         }
         const n = new Date();
