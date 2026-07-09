@@ -81,7 +81,17 @@ const elements = {
     masterModal: document.getElementById('master-modal'),
     selectionModal: document.getElementById('selection-modal'),
     loadingOverlay: document.getElementById('loading-overlay'),
-    loadingText: document.getElementById('loading-text')
+    loadingText: document.getElementById('loading-text'),
+    // Save / Load
+    saveProjectBtn: document.getElementById('save-project-btn'),
+    saveModal: document.getElementById('save-modal'),
+    closeSaveModal: document.getElementById('close-save-modal'),
+    projectNameInput: document.getElementById('project-name-input'),
+    saveModeName: document.getElementById('save-mode-name'),
+    savePhotoCount: document.getElementById('save-photo-count'),
+    confirmSaveBtn: document.getElementById('confirm-save-btn'),
+    importInputMode: document.getElementById('import-input-mode'),
+    importInputList: document.getElementById('import-input-list')
 };
 
 // Current settings tab state
@@ -166,8 +176,16 @@ function setupEventListeners() {
     document.querySelectorAll('.close-modal').forEach(btn => {
         btn.addEventListener('click', () => {
             elements.selectionModal.classList.add('hidden');
+            elements.saveModal.classList.add('hidden');
         });
     });
+
+    // Save / Load
+    elements.saveProjectBtn.addEventListener('click', showSaveModal);
+    elements.closeSaveModal.addEventListener('click', hideSaveModal);
+    elements.confirmSaveBtn.addEventListener('click', exportProject);
+    elements.importInputMode.addEventListener('change', (e) => handleImportFile(e));
+    elements.importInputList.addEventListener('change', (e) => handleImportFile(e));
 }
 
 function showModeSelection() {
@@ -788,4 +806,121 @@ async function generatePDF() {
 
 function showLoading(t) { elements.loadingText.textContent = t; elements.loadingOverlay.classList.remove('hidden'); }
 function hideLoading() { elements.loadingOverlay.classList.add('hidden'); }
+
+// ── Save / Load ──
+
+function showSaveModal() {
+    if (state.photos.length === 0) {
+        alert('保存する写真がありません。');
+        return;
+    }
+    elements.saveModeName.textContent = MODE_NAMES[state.currentMode];
+    elements.savePhotoCount.textContent = `${state.photos.length}枚`;
+    elements.projectNameInput.value = state.lastProjectName || '';
+    elements.saveModal.classList.remove('hidden');
+    // Focus the input after modal animation
+    setTimeout(() => elements.projectNameInput.focus(), 300);
+}
+
+function hideSaveModal() {
+    elements.saveModal.classList.add('hidden');
+}
+
+function exportProject() {
+    const projectName = elements.projectNameInput.value.trim();
+    if (!projectName) {
+        alert('案件名を入力してください。');
+        elements.projectNameInput.focus();
+        return;
+    }
+
+    state.lastProjectName = projectName;
+
+    const now = new Date();
+    const ts = `${now.getFullYear()}${String(now.getMonth() + 1).padStart(2, '0')}${String(now.getDate()).padStart(2, '0')}_${String(now.getHours()).padStart(2, '0')}${String(now.getMinutes()).padStart(2, '0')}`;
+    const modeName = MODE_NAMES[state.currentMode];
+
+    const data = {
+        format: 'photobook',
+        version: '1.0',
+        appVersion: '2.1.3',
+        savedAt: now.toISOString(),
+        projectName: projectName,
+        mode: state.currentMode,
+        modeName: modeName,
+        photos: state.photos
+    };
+
+    const json = JSON.stringify(data);
+    const blob = new Blob([json], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+
+    const fileName = `${projectName}_${modeName}_${ts}.photobook.json`;
+
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = fileName;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+
+    hideSaveModal();
+}
+
+function handleImportFile(e) {
+    const file = e.target.files[0];
+    if (!file) return;
+    e.target.value = ''; // Reset so same file can be selected again
+
+    const reader = new FileReader();
+    reader.onload = (ev) => {
+        try {
+            const data = JSON.parse(ev.target.result);
+            importProject(data);
+        } catch (err) {
+            alert('有効な保存ファイルではありません。\nJSON形式のファイルを選択してください。');
+            console.error('Import parse error:', err);
+        }
+    };
+    reader.readAsText(file);
+}
+
+function importProject(data) {
+    // Validate format
+    if (!data || data.format !== 'photobook') {
+        alert('PhotoBook の保存ファイルではありません。');
+        return;
+    }
+
+    // Validate version
+    if (!data.version || !data.version.startsWith('1.')) {
+        alert('このバージョンの保存ファイルには対応していません。');
+        return;
+    }
+
+    // Validate mode
+    if (!data.mode || !MODE_NAMES[data.mode]) {
+        alert('不明な様式の保存ファイルです。');
+        return;
+    }
+
+    // Validate photos
+    if (!Array.isArray(data.photos) || data.photos.length === 0) {
+        alert('写真データが含まれていません。');
+        return;
+    }
+
+    // Restore state
+    state.currentMode = data.mode;
+    state.photos = data.photos;
+    state.lastProjectName = data.projectName || '';
+
+    // Show photo list
+    elements.modeSelection.classList.add('hidden');
+    elements.emptyState.classList.add('hidden');
+    elements.masterBtn.classList.remove('hidden');
+    updateUI();
+}
+
 init();

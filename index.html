@@ -89,6 +89,12 @@
                         <i data-lucide="chevron-right"></i>
                     </button>
                 </div>
+                <div class="mode-selection-footer">
+                    <label for="import-input-mode" class="btn secondary-btn import-mode-btn">
+                        <i data-lucide="folder-open"></i> 保存データを読み込む
+                    </label>
+                    <input type="file" id="import-input-mode" accept=".json" hidden>
+                </div>
             </div>
 
             <!-- 1.5 Master Settings Screen (Initially Hidden) -->
@@ -150,14 +156,25 @@
                 <div id="photo-list" class="photo-grid">
                     <!-- Photos will be injected here -->
                 </div>
-                <div class="list-actions-bottom" style="display: flex; justify-content: center; gap: 1rem; margin-top: 2rem; margin-bottom: 2rem;">
-                    <label for="image-input-append" class="btn secondary-btn">
-                        <i data-lucide="plus"></i> 写真を追加
-                    </label>
-                    <input type="file" id="image-input-append" accept="image/*" multiple hidden>
-                    <button id="generate-pdf-btn" class="btn accent-btn">
-                        <i data-lucide="file-text"></i> PDF出力
-                    </button>
+                <div class="list-actions-bottom">
+                    <div class="actions-row-primary">
+                        <label for="image-input-append" class="btn secondary-btn">
+                            <i data-lucide="plus"></i> 写真を追加
+                        </label>
+                        <input type="file" id="image-input-append" accept="image/*" multiple hidden>
+                        <button id="generate-pdf-btn" class="btn accent-btn">
+                            <i data-lucide="file-text"></i> PDF出力
+                        </button>
+                    </div>
+                    <div class="actions-row-secondary">
+                        <button id="save-project-btn" class="btn save-btn">
+                            <i data-lucide="save"></i> 保存
+                        </button>
+                        <label for="import-input-list" class="btn load-btn">
+                            <i data-lucide="folder-open"></i> 読込
+                        </label>
+                        <input type="file" id="import-input-list" accept=".json" hidden>
+                    </div>
                 </div>
             </div>
         </main>
@@ -201,6 +218,35 @@
                 </div>
                 <div id="selection-options" class="selection-grid">
                     <!-- Options injected here -->
+                </div>
+            </div>
+        </div>
+
+        <!-- Save Project Modal -->
+        <div id="save-modal" class="modal hidden">
+            <div class="modal-content save-modal-content">
+                <div class="modal-header">
+                    <h2>プロジェクトを保存</h2>
+                    <button class="close-modal" id="close-save-modal"><i data-lucide="x"></i></button>
+                </div>
+                <div class="modal-body save-modal-body">
+                    <div class="save-form-group">
+                        <label class="save-form-label" for="project-name-input">案件名</label>
+                        <input type="text" id="project-name-input" class="save-form-input" placeholder="例：田中邸">
+                    </div>
+                    <div class="save-info">
+                        <div class="save-info-row">
+                            <span class="save-info-label">様式</span>
+                            <span id="save-mode-name" class="save-info-value"></span>
+                        </div>
+                        <div class="save-info-row">
+                            <span class="save-info-label">写真</span>
+                            <span id="save-photo-count" class="save-info-value"></span>
+                        </div>
+                    </div>
+                    <button id="confirm-save-btn" class="btn primary-btn save-confirm-btn">
+                        <i data-lucide="download"></i> 保存する
+                    </button>
                 </div>
             </div>
         </div>
