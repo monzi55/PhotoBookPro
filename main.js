@@ -186,6 +186,11 @@ function setupEventListeners() {
     elements.confirmSaveBtn.addEventListener('click', exportProject);
     elements.importInputMode.addEventListener('change', (e) => handleImportFile(e));
     elements.importInputList.addEventListener('change', (e) => handleImportFile(e));
+
+    // showOpenFilePickerをサポートしているブラウザ用（デフォルトでダウンロードフォルダを開く）
+    document.querySelectorAll('label[for="import-input-mode"], label[for="import-input-list"]').forEach(label => {
+        label.addEventListener('click', handleImportClick);
+    });
 }
 
 function showModeSelection() {
@@ -843,7 +848,7 @@ function exportProject() {
     const data = {
         format: 'photobook',
         version: '1.0',
-        appVersion: '2.1.3',
+        appVersion: '3.0.0',
         savedAt: now.toISOString(),
         projectName: projectName,
         mode: state.currentMode,
@@ -866,13 +871,17 @@ function exportProject() {
     URL.revokeObjectURL(url);
 
     hideSaveModal();
+    alert('ダウンロードフォルダへ保存されました。');
 }
 
 function handleImportFile(e) {
     const file = e.target.files[0];
     if (!file) return;
     e.target.value = ''; // Reset so same file can be selected again
+    loadJsonFile(file);
+}
 
+function loadJsonFile(file) {
     const reader = new FileReader();
     reader.onload = (ev) => {
         try {
@@ -884,6 +893,37 @@ function handleImportFile(e) {
         }
     };
     reader.readAsText(file);
+}
+
+async function handleImportClick(e) {
+    if (typeof window.showOpenFilePicker === 'function') {
+        e.preventDefault();
+        try {
+            const [fileHandle] = await window.showOpenFilePicker({
+                types: [{
+                    description: 'JSON Files',
+                    accept: {
+                        'application/json': ['.json']
+                    }
+                }],
+                excludeAcceptAllOption: true,
+                multiple: false,
+                startIn: 'downloads'
+            });
+            const file = await fileHandle.getFile();
+            loadJsonFile(file);
+        } catch (err) {
+            if (err.name !== 'AbortError') {
+                console.error('File picker error:', err);
+                // エラー時は通常のinputをトリガーしてフォールバック
+                const inputId = e.currentTarget.getAttribute('for');
+                if (inputId) {
+                    const input = document.getElementById(inputId);
+                    if (input) input.click();
+                }
+            }
+        }
+    }
 }
 
 function importProject(data) {
